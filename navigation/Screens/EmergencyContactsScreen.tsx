@@ -14,7 +14,7 @@ import {
   Card,
   FAB,
   Portal,
-  Modal,
+  Dialog,
   ActivityIndicator,
   Chip,
   IconButton,
@@ -43,6 +43,9 @@ const EmergencyContactsScreen: React.FC<Props> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+  const [selectedContact, setSelectedContact] =
+    useState<EmergencyContact | null>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -132,10 +135,16 @@ const EmergencyContactsScreen: React.FC<Props> = ({ navigation }) => {
     setPriority('1');
   };
 
+  const handleViewContact = (contact: EmergencyContact) => {
+    setSelectedContact(contact);
+    setIsDetailsVisible(true);
+  };
+
   const renderContact = ({ item }: { item: EmergencyContact }) => (
     <Card
       style={[styles.contactCard, { backgroundColor: theme.colors.surface }]}
       mode="elevated"
+      onPress={() => handleViewContact(item)}
     >
       <Card.Content style={styles.contactContent}>
         <Chip
@@ -235,104 +244,204 @@ const EmergencyContactsScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Add Contact Modal */}
       <Portal>
-        <Modal
+        <Dialog
           visible={isModalVisible}
           onDismiss={() => {
             setIsModalVisible(false);
             resetForm();
           }}
-          contentContainerStyle={[
-            styles.modalContent,
-            { backgroundColor: theme.colors.surface },
-          ]}
+          style={styles.dialog}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
-          >
-            <Text
-              variant="headlineSmall"
-              style={[styles.modalTitle, { color: theme.colors.onSurface }]}
+          <Dialog.Title>Add Emergency Contact</Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogScrollArea}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-              Add Emergency Contact
-            </Text>
+              <Dialog.Content>
+                <TextInput
+                  label="Name *"
+                  value={name}
+                  onChangeText={setName}
+                  mode="outlined"
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                  textColor={theme.colors.onSurface}
+                />
 
-            <TextInput
-              label="Name *"
-              value={name}
-              onChangeText={setName}
-              mode="outlined"
-              style={styles.input}
-              outlineColor={theme.colors.outline}
-              activeOutlineColor={theme.colors.primary}
-              textColor={theme.colors.onSurface}
-            />
+                <TextInput
+                  label="Mobile Number *"
+                  value={mobile}
+                  onChangeText={setMobile}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  mode="outlined"
+                  left={<TextInput.Affix text="+91" />}
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                  textColor={theme.colors.onSurface}
+                />
 
-            <TextInput
-              label="Mobile Number *"
-              value={mobile}
-              onChangeText={setMobile}
-              keyboardType="phone-pad"
-              maxLength={10}
-              mode="outlined"
-              left={<TextInput.Affix text="+91" />}
-              style={styles.input}
-              outlineColor={theme.colors.outline}
-              activeOutlineColor={theme.colors.primary}
-              textColor={theme.colors.onSurface}
-            />
+                <TextInput
+                  label="Email (Optional)"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  mode="outlined"
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                  textColor={theme.colors.onSurface}
+                />
 
-            <TextInput
-              label="Email (Optional)"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              mode="outlined"
-              style={styles.input}
-              outlineColor={theme.colors.outline}
-              activeOutlineColor={theme.colors.primary}
-              textColor={theme.colors.onSurface}
-            />
+                <TextInput
+                  label="Priority"
+                  value={priority}
+                  onChangeText={setPriority}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  mode="outlined"
+                  style={styles.input}
+                  outlineColor={theme.colors.outline}
+                  activeOutlineColor={theme.colors.primary}
+                  textColor={theme.colors.onSurface}
+                />
+              </Dialog.Content>
+            </KeyboardAvoidingView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button
+              mode="text"
+              onPress={() => {
+                setIsModalVisible(false);
+                resetForm();
+              }}
+              textColor={theme.colors.primary}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleAddContact}
+              loading={isSaving}
+              disabled={isSaving}
+              buttonColor={theme.colors.primary}
+            >
+              Add Contact
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
 
-            <TextInput
-              label="Priority"
-              value={priority}
-              onChangeText={setPriority}
-              keyboardType="number-pad"
-              maxLength={2}
-              mode="outlined"
-              style={styles.input}
-              outlineColor={theme.colors.outline}
-              activeOutlineColor={theme.colors.primary}
-              textColor={theme.colors.onSurface}
-            />
+        {/* Contact Details Dialog */}
+        <Dialog
+          visible={isDetailsVisible}
+          onDismiss={() => setIsDetailsVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>Contact Details</Dialog.Title>
+          <Dialog.Content>
+            {selectedContact && (
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailRow}>
+                  <Icon name="account" size={24} color={theme.colors.primary} />
+                  <View style={styles.detailText}>
+                    <Text
+                      variant="labelSmall"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      Name
+                    </Text>
+                    <Text
+                      variant="bodyLarge"
+                      style={{
+                        color: theme.colors.onSurface,
+                        fontWeight: '600',
+                      }}
+                    >
+                      {selectedContact.name}
+                    </Text>
+                  </View>
+                </View>
 
-            <View style={styles.modalButtons}>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setIsModalVisible(false);
-                  resetForm();
-                }}
-                style={{ flex: 1 }}
-                textColor={theme.colors.primary}
-              >
-                Cancel
-              </Button>
-              <Button
-                mode="contained"
-                onPress={handleAddContact}
-                loading={isSaving}
-                disabled={isSaving}
-                style={{ flex: 1 }}
-                buttonColor={theme.colors.primary}
-              >
-                Add Contact
-              </Button>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
+                <View style={styles.detailRow}>
+                  <Icon name="phone" size={24} color={theme.colors.primary} />
+                  <View style={styles.detailText}>
+                    <Text
+                      variant="labelSmall"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      Mobile Number
+                    </Text>
+                    <Text
+                      variant="bodyLarge"
+                      style={{
+                        color: theme.colors.onSurface,
+                        fontWeight: '600',
+                      }}
+                    >
+                      +91 {selectedContact.mobile}
+                    </Text>
+                  </View>
+                </View>
+
+                {selectedContact.email && (
+                  <View style={styles.detailRow}>
+                    <Icon name="email" size={24} color={theme.colors.primary} />
+                    <View style={styles.detailText}>
+                      <Text
+                        variant="labelSmall"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        Email
+                      </Text>
+                      <Text
+                        variant="bodyLarge"
+                        style={{
+                          color: theme.colors.onSurface,
+                          fontWeight: '600',
+                        }}
+                      >
+                        {selectedContact.email}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.detailRow}>
+                  <Icon name="numeric" size={24} color={theme.colors.primary} />
+                  <View style={styles.detailText}>
+                    <Text
+                      variant="labelSmall"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      Priority
+                    </Text>
+                    <Text
+                      variant="bodyLarge"
+                      style={{
+                        color: theme.colors.onSurface,
+                        fontWeight: '600',
+                      }}
+                    >
+                      #{selectedContact.priority}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              mode="contained"
+              onPress={() => setIsDetailsVisible(false)}
+              buttonColor={theme.colors.primary}
+            >
+              Close
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </View>
   );
@@ -384,22 +493,27 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  modalContent: {
-    padding: 24,
-    margin: 20,
+  dialog: {
     borderRadius: 16,
   },
-  modalTitle: {
-    fontWeight: 'bold',
-    marginBottom: 20,
+  dialogScrollArea: {
+    maxHeight: 400,
+    paddingHorizontal: 0,
   },
   input: {
     marginBottom: 16,
   },
-  modalButtons: {
+  detailsContainer: {
+    gap: 20,
+  },
+  detailRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  detailText: {
+    flex: 1,
+    gap: 4,
   },
 });
 

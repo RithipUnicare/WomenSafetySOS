@@ -5,46 +5,46 @@ export const theme = {
   dark: false,
   colors: {
     ...MD3LightTheme.colors,
-    // Primary pink color scheme
-    primary: '#FF6B9D',
-    primaryContainer: '#FFE5EE',
-    secondary: '#FF85B3',
-    secondaryContainer: '#FFF0F6',
-    tertiary: '#C74375',
+    // Primary pink color scheme - much darker, richer shades
+    primary: '#C2185B', // Material Pink 700 - very deep pink
+    primaryContainer: '#F48FB1',
+    secondary: '#E91E63', // Material Pink 500
+    secondaryContainer: '#F06292',
+    tertiary: '#880E4F', // Material Pink 900 - darkest
 
-    // Light background colors with pink tint
-    background: '#FFF5F9',
+    // Background colors with deeper pink tint
+    background: '#FFF0F5',
     surface: '#FFFFFF',
-    surfaceVariant: '#FFF0F6',
+    surfaceVariant: '#F48FB1',
 
-    // Text colors
+    // Text colors - darker for better contrast
     onPrimary: '#FFFFFF',
-    onSecondary: '#2D1B3D',
-    onBackground: '#2D1B3D',
-    onSurface: '#2D1B3D',
-    onSurfaceVariant: '#5A3566',
+    onSecondary: '#FFFFFF',
+    onBackground: '#1A1A1A',
+    onSurface: '#1A1A1A',
+    onSurfaceVariant: '#2D2D2D',
 
-    // Status colors
-    error: '#FF5252',
-    errorContainer: '#FFEBEE',
-    success: '#4CAF50',
-    warning: '#FF9800',
+    // Status colors - deeper tones
+    error: '#B71C1C',
+    errorContainer: '#FFCDD2',
+    success: '#2E7D32',
+    warning: '#E65100',
 
     // Other colors
-    outline: '#FFB6D9',
-    outlineVariant: '#FFD4E8',
+    outline: '#EC407A',
+    outlineVariant: '#F06292',
     shadow: '#000000',
-    backdrop: 'rgba(255, 107, 157, 0.15)',
+    backdrop: 'rgba(194, 24, 91, 0.4)',
 
     // Custom colors for the app
-    accent: '#FF85B3',
+    accent: '#E91E63',
     cardBackground: '#FFFFFF',
-    inputBackground: '#FFF5F9',
+    inputBackground: '#FFF0F5',
 
     // Gradient colors (for LinearGradient usage)
-    gradientStart: '#FFE5EE',
-    gradientMiddle: '#FFF0F6',
-    gradientEnd: '#FFF5F9',
+    gradientStart: '#F48FB1',
+    gradientMiddle: '#F8BBD0',
+    gradientEnd: '#FFF0F5',
   },
 };
 

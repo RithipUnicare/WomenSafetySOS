@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import {
   Text,
@@ -9,8 +9,11 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../AppNavigation';
 import { useAuth } from '../../context/AuthContext';
+import UserService from '../../services/UserService';
+import { User } from '../../types/types';
 import type { AppTheme } from '../../theme/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -26,6 +29,24 @@ interface Props {
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const theme = useTheme<AppTheme>();
+  const [userProfile, setUserProfile] = useState<User | null>(user);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserProfile();
+    }, []),
+  );
+
+  const fetchUserProfile = async () => {
+    try {
+      const profile = await UserService.getProfile();
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      // Fallback to user from AuthContext
+      setUserProfile(user);
+    }
+  };
 
   return (
     <View
@@ -45,7 +66,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               variant="headlineSmall"
               style={[styles.userName, { color: theme.colors.onBackground }]}
             >
-              {user?.name || 'User'}
+              {userProfile?.name || 'User'}
             </Text>
           </View>
           <IconButton

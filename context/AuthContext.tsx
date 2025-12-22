@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const response = await AuthService.signup(data);
       setUser(response.user);
-      setIsAuthenticated(true);
+      //setIsAuthenticated(true);
     } catch (error) {
       console.error('Signup error:', error);
       throw error;

@@ -69,6 +69,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}

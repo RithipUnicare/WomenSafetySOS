@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Update this BASE_URL with your actual backend server URL
-  BASE_URL: 'https://app.undefineddevelopers.online', // Change to your server URL
+  BASE_URL: 'https://app.undefineddevelopers.online/womensafety', // Change to your server URL
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
 };

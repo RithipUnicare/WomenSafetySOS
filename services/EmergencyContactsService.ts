@@ -8,10 +8,11 @@ class EmergencyContactsService {
    */
   async getContacts(): Promise<EmergencyContact[]> {
     try {
-      const response = await ApiClient.get<{ contacts: EmergencyContact[] }>(
+      const response = await ApiClient.get<EmergencyContact[]>(
         API_ENDPOINTS.CONTACTS,
       );
-      return response.contacts || [];
+      // API returns array directly
+      return Array.isArray(response) ? response : [];
     } catch (error) {
       console.error('Get contacts error:', error);
       throw error;
