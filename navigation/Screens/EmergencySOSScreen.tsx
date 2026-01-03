@@ -105,7 +105,7 @@ const EmergencySOSScreen: React.FC<Props> = ({ navigation }) => {
       const locationData = await getLocation();
 
       if (locationData) {
-        const { pos, address } = locationData;
+        const { pos, address, locationUrl } = locationData;
         const { latitude, longitude } = pos.coords;
         setCurrentLocation({ latitude, longitude });
 
@@ -117,6 +117,7 @@ const EmergencySOSScreen: React.FC<Props> = ({ navigation }) => {
               address:
                 address ||
                 `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`,
+              locationUrl,
             });
           } catch (error) {
             console.error('Save location error:', error);
@@ -139,6 +140,7 @@ const EmergencySOSScreen: React.FC<Props> = ({ navigation }) => {
                 address: `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(
                   6,
                 )}`,
+                locationUrl: `https://www.google.com/maps?q=${latitude},${longitude}`,
               });
             } catch (error) {
               console.error('Save location error:', error);
@@ -166,6 +168,28 @@ const EmergencySOSScreen: React.FC<Props> = ({ navigation }) => {
           onPress: async () => {
             setIsStarting(true);
             try {
+              // First, try to get location and save it
+              try {
+                const locationData = await getLocation();
+                if (locationData) {
+                  const { pos, address, locationUrl } = locationData;
+                  const { latitude, longitude } = pos.coords;
+
+                  // Save location with locationUrl
+                  await LocationService.saveLocation({
+                    latitude,
+                    longitude,
+                    address: address || `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`,
+                    locationUrl,
+                  });
+
+                  console.log('📍 Location saved with URL:', locationUrl);
+                }
+              } catch (locationError) {
+                console.warn('Failed to get/save location, proceeding with emergency anyway:', locationError);
+              }
+
+              // Start emergency regardless of location success
               const emergency = await EmergencyService.startEmergency();
               setActiveEmergency(emergency);
               Alert.alert(

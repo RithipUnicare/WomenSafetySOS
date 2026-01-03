@@ -9,6 +9,7 @@ Geocoder.init(GOOGLE_MAPS_API_KEY);
 interface LocationResult {
   pos: Geolocation.GeoPosition;
   address: string | null;
+  locationUrl: string;
 }
 
 /**
@@ -74,6 +75,16 @@ const getAddress = async (lat: number, lng: number): Promise<string | null> => {
 };
 
 /**
+ * Create Google Maps URL from coordinates
+ */
+export const createGoogleMapsUrl = (
+  latitude: number,
+  longitude: number,
+): string => {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
+};
+
+/**
  * Get current location with coordinates and address
  */
 export const getLocation = async (): Promise<LocationResult | null> => {
@@ -83,12 +94,11 @@ export const getLocation = async (): Promise<LocationResult | null> => {
   return new Promise((resolve, reject) => {
     Geolocation.getCurrentPosition(
       async pos => {
-        const address = await getAddress(
-          pos.coords.latitude,
-          pos.coords.longitude,
-        );
+        const { latitude, longitude } = pos.coords;
+        const address = await getAddress(latitude, longitude);
+        const locationUrl = createGoogleMapsUrl(latitude, longitude);
         console.log('📍 Location retrieved:', pos);
-        resolve({ pos, address });
+        resolve({ pos, address, locationUrl });
       },
       err => {
         console.error('Location error:', err.code, err.message);

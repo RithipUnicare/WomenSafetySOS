@@ -67,6 +67,7 @@ export interface LocationRequest {
   latitude: number;
   longitude: number;
   address?: string;
+  locationUrl?: string;
 }
 
 // Media Types
