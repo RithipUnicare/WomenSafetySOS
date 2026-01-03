@@ -7,7 +7,7 @@ export const API_CONFIG = {
 };
 
 // Google Maps API Key for Geocoding
-export const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY_HERE'; // Add your Google API key
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyAZEvImYpC0VElqzSODnaAJ4C8rrPI-hRA'; // Add your Google API key
 
 export const API_ENDPOINTS = {
   // Auth
