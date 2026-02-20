@@ -176,6 +176,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               { backgroundColor: theme.colors.surface },
             ]}
             mode="elevated"
+            onPress={() => navigation.navigate('LocationHistory')}
           >
             <Card.Content style={styles.actionCardContent}>
               <Surface

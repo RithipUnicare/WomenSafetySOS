@@ -13,6 +13,7 @@ import ProfileScreen from './Screens/ProfileScreen';
 import EmergencyContactsScreen from './Screens/EmergencyContactsScreen';
 import EmergencySOSScreen from './Screens/EmergencySOSScreen';
 import AdminDashboardScreen from './Screens/AdminDashboardScreen';
+import LocationHistoryScreen from './Screens/LocationHistoryScreen';
 
 export type RootStackParamList = {
   // Auth Stack
@@ -23,6 +24,7 @@ export type RootStackParamList = {
   Profile: undefined;
   EmergencyContacts: undefined;
   EmergencySOS: undefined;
+  LocationHistory: undefined;
   AdminDashboard: undefined;
 };
 
@@ -96,6 +98,11 @@ const AppNavigation = () => {
               name="EmergencySOS"
               component={EmergencySOSScreen}
               options={{ title: 'Emergency SOS' }}
+            />
+            <Stack.Screen
+              name="LocationHistory"
+              component={LocationHistoryScreen}
+              options={{ title: 'Location History' }}
             />
             <Stack.Screen
               name="AdminDashboard"

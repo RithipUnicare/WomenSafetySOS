@@ -1,0 +1,999 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Women Safety SOS API",
+    "description": "Backend APIs for Women Safety SOS Application",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "http://app.undefineddevelopers.online/womensafety",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/user/profile": {
+      "get": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "getProfile",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "updateProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/edit": {
+      "put": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "editUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/upload": {
+      "post": {
+        "tags": [
+          "media-controller"
+        ],
+        "operationId": "uploadMedia",
+        "parameters": [
+          {
+            "name": "emergencyId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location": {
+      "post": {
+        "tags": [
+          "location-controller"
+        ],
+        "operationId": "saveLocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/emergency/{id}/resolve": {
+      "post": {
+        "tags": [
+          "emergency-controller"
+        ],
+        "operationId": "resolveEmergency",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/emergency/{id}/escalate": {
+      "post": {
+        "tags": [
+          "emergency-controller"
+        ],
+        "operationId": "escalate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyEventResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/emergency/start": {
+      "post": {
+        "tags": [
+          "emergency-controller"
+        ],
+        "operationId": "startEmergency",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyEventResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts": {
+      "get": {
+        "tags": [
+          "emergency-contact-controller"
+        ],
+        "operationId": "listContacts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmergencyContactResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "emergency-contact-controller"
+        ],
+        "operationId": "addContact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmergencyContactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/update-role": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "updateUserRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Signuprequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "resetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/request-password-reset": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "requestPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "refreshToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "getAllUsers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/latest": {
+      "get": {
+        "tags": [
+          "location-controller"
+        ],
+        "operationId": "getLatestLocation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/emergency/active": {
+      "get": {
+        "tags": [
+          "emergency-controller"
+        ],
+        "operationId": "getActiveEmergency",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyEventResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/emergencies": {
+      "get": {
+        "tags": [
+          "admin-controller"
+        ],
+        "operationId": "getAllEmergencies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminEmergencyEventResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/admin/contacts": {
+      "get": {
+        "tags": [
+          "admin-controller"
+        ],
+        "operationId": "getAllContacts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminEmergencyContactResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "delete": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts/{id}": {
+      "delete": {
+        "tags": [
+          "emergency-contact-controller"
+        ],
+        "operationId": "deleteContact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserEditRequest": {
+        "type": "object",
+        "properties": {
+          "mobileNumber": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationRequest": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "address": {
+            "type": "string"
+          },
+          "locationUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ]
+      },
+      "EmergencyEventResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "ALERT",
+              "HIGH_ALERT",
+              "VERY_HIGH"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "RESOLVED"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "userMobile": {
+            "type": "string"
+          },
+          "locationUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "EmergencyContactRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mobile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "mobile",
+          "name"
+        ]
+      },
+      "RoleUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "mobileNumber": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "string"
+          }
+        }
+      },
+      "Signuprequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mobileNumber": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "mobileNumber": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mobileNumber": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "address": {
+            "type": "string"
+          },
+          "locationUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummaryResponse"
+          }
+        }
+      },
+      "UserSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mobileNumber": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "EmergencyContactResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mobile": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminEmergencyEventResponse": {
+        "type": "object",
+        "properties": {
+          "emergencyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "ALERT",
+              "HIGH_ALERT",
+              "VERY_HIGH"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "RESOLVED"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "userMobile": {
+            "type": "string"
+          },
+          "userEmail": {
+            "type": "string"
+          },
+          "locationUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminEmergencyContactResponse": {
+        "type": "object",
+        "properties": {
+          "contactId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactMobile": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "userMobile": {
+            "type": "string"
+          },
+          "userEmail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
