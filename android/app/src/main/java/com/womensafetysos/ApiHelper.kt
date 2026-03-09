@@ -1,6 +1,7 @@
 package com.womensafetysos
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -18,33 +19,84 @@ class ApiHelper(private val context: Context) {
         private const val TAG = "ApiHelper"
         private const val BASE_URL = "https://app.undefineddevelopers.online/womensafety"
         private const val TIMEOUT_MS = 30000
-        
-        // SharedPreferences key for auth token (same as React Native AsyncStorage)
-        private const val PREFS_NAME = "RCTAsyncLocalStorage_V1"
+
+        // AsyncStorage v2.x (SQLite-based) — database name and table
+        private const val RK_DB_NAME = "RKStorage"
+        private const val RK_TABLE = "catalystLocalStorage"
         private const val TOKEN_KEY = "@womensafety_access_token"
+
+        // Fallback: old SharedPreferences path (AsyncStorage v1)
+        private const val PREFS_NAME = "RCTAsyncLocalStorage_V1"
     }
 
     /**
      * Get auth token from SharedPreferences
      */
+    /**
+     * Reads the auth token from wherever AsyncStorage stored it.
+     *
+     * @react-native-async-storage/async-storage v2.x uses a SQLite database
+     * located at:  databases/RKStorage-v1.sqlite
+     * Table: catalystLocalStorage  Columns: key TEXT, value TEXT
+     *
+     * Older v1 builds used SharedPreferences (RCTAsyncLocalStorage_V1).
+     * We try SQLite first, then fall back to SharedPreferences.
+     */
     private fun getAuthToken(): String? {
+        // ── 1. Try SQLite (AsyncStorage v2.x) ────────────────────────────
+        val token = readTokenFromSQLite()
+        if (token != null) return token
+
+        // ── 2. Fallback: SharedPreferences (AsyncStorage v1) ─────────────
+        Log.d(TAG, "🔐 SQLite empty — trying SharedPreferences fallback...")
         return try {
-            Log.d(TAG, "🔐 Getting auth token from SharedPreferences...")
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val token = prefs.getString(TOKEN_KEY, null)
-            
-            if (token != null) {
-                Log.d(TAG, "✅ Auth token found (length: ${token.length})")
-                Log.d(TAG, "🔑 Token preview: ${token.take(20)}...")
+            val t = prefs.getString(TOKEN_KEY, null)
+            if (t != null) {
+                Log.d(TAG, "✅ Token found in SharedPreferences (length: ${t.length})")
             } else {
-                Log.e(TAG, "❌ No auth token found in SharedPreferences")
-                Log.e(TAG, "🔑 Available keys: ${prefs.all.keys}")
+                Log.e(TAG, "❌ No auth token found. Make sure you are logged in to the app.")
             }
-            
-            token
+            t
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error getting auth token", e)
+            Log.e(TAG, "❌ Error reading SharedPreferences", e)
             null
+        }
+    }
+
+    private fun readTokenFromSQLite(): String? {
+        val dbPath = context.getDatabasePath(RK_DB_NAME)
+        if (!dbPath.exists()) {
+            Log.d(TAG, "🗄️ SQLite DB not found at: ${dbPath.absolutePath}")
+            return null
+        }
+        Log.d(TAG, "🗄️ Opening SQLite DB: ${dbPath.absolutePath}")
+        var db: SQLiteDatabase? = null
+        return try {
+            db = SQLiteDatabase.openDatabase(
+                dbPath.absolutePath, null, SQLiteDatabase.OPEN_READONLY
+            )
+            val cursor = db.rawQuery(
+                "SELECT value FROM $RK_TABLE WHERE key = ?",
+                arrayOf(TOKEN_KEY)
+            )
+            cursor.use {
+                if (it.moveToFirst()) {
+                    val raw = it.getString(0)
+                    // AsyncStorage wraps strings in double-quotes: "\"token\"" → strip them
+                    val cleaned = raw.trim().removeSurrounding("\"")
+                    Log.d(TAG, "✅ Token read from SQLite (length: ${cleaned.length})")
+                    cleaned
+                } else {
+                    Log.d(TAG, "🗄️ Token key not found in SQLite table")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error reading SQLite token", e)
+            null
+        } finally {
+            db?.close()
         }
     }
 
