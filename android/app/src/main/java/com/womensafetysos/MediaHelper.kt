@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.media.MediaRecorder
 import android.os.Build
@@ -12,13 +13,14 @@ import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Suppress("DEPRECATION") // Camera API is deprecated but is the only way to capture from a background service
 class MediaHelper(private val context: Context) {
 
     companion object {
@@ -26,8 +28,6 @@ class MediaHelper(private val context: Context) {
         private const val AUDIO_SAMPLING_RATE = 44100
         private const val AUDIO_BIT_RATE = 128000
         private const val AUDIO_CHANNELS = 1
-        private const val AUDIO_FORMAT = MediaRecorder.OutputFormat.THREE_GPP
-        private const val AUDIO_ENCODER = MediaRecorder.AudioEncoder.AMR_NB
     }
 
     data class MediaFiles(
@@ -35,183 +35,186 @@ class MediaHelper(private val context: Context) {
         val audioPath: String?
     )
 
-    /**
-     * Check if required permissions are granted
-     */
+    // ────────────────────────────────────────────────────────────────────────
+    // Permission helpers
+    // ────────────────────────────────────────────────────────────────────────
+
     fun hasRequiredPermissions(): Boolean {
-        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_AUDIO
-            )
+        val required = mutableListOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            required += Manifest.permission.READ_MEDIA_IMAGES
+            required += Manifest.permission.READ_MEDIA_AUDIO
         } else {
-            arrayOf(
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            )
+            required += Manifest.permission.READ_EXTERNAL_STORAGE
         }
-
-        return permissions.all { permission ->
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-        }
+        return required.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
     }
 
-    /**
-     * Capture photo using camera
-     */
-    suspend fun capturePhoto(): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                Log.d(TAG, "📸 Capturing photo...")
-                
-                // Create a temporary image file
-                val photoFile = createImageFile()
-                
-                // For simplicity, we'll create a dummy image
-                // In a real implementation, you'd use Camera2 API or CameraX
-                val bitmap = createDummyBitmap()
-                
-                FileOutputStream(photoFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
-                }
-                
-                Log.d(TAG, "✅ Photo captured: ${photoFile.absolutePath}")
-                photoFile.absolutePath
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Failed to capture photo", e)
-                null
-            }
-        }
-    }
+    // ────────────────────────────────────────────────────────────────────────
+    // Audio recording (1 minute)
+    // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Start voice recording for specified duration
+     * Records audio for [durationMs] milliseconds and returns the file path.
+     * Must be called from a coroutine (suspends while recording).
      */
-    suspend fun startVoiceRecording(durationMs: Long = 60000): String? {
-        return withContext(Dispatchers.IO) {
+    suspend fun startVoiceRecording(durationMs: Long = 60_000L): String? =
+        withContext(Dispatchers.IO) {
+            val audioFile = createAudioFile()
+            Log.d(TAG, "🎤 Starting voice recording → ${audioFile.absolutePath}")
+
+            val recorder = createMediaRecorder()
             try {
-                Log.d(TAG, "🎤 Starting voice recording for ${durationMs}ms...")
-                
-                val audioFile = createAudioFile()
-                val mediaRecorder = MediaRecorder()
-                
-                mediaRecorder.apply {
+                recorder.apply {
                     setAudioSource(MediaRecorder.AudioSource.MIC)
-                    setOutputFormat(AUDIO_FORMAT)
-                    setAudioEncoder(AUDIO_ENCODER)
+                    // Android does not natively support encoding to MP3. The modern standard is AAC inside an M4A container.
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
                     setAudioSamplingRate(AUDIO_SAMPLING_RATE)
                     setAudioEncodingBitRate(AUDIO_BIT_RATE)
                     setAudioChannels(AUDIO_CHANNELS)
                     setOutputFile(audioFile.absolutePath)
-                    
                     prepare()
                     start()
                 }
-                
-                Log.d(TAG, "🎙️ Recording started...")
-                
-                // Wait for the specified duration
-                kotlinx.coroutines.delay(durationMs)
-                
-                mediaRecorder.apply {
-                    stop()
-                    release()
-                }
-                
-                Log.d(TAG, "✅ Voice recording completed: ${audioFile.absolutePath}")
+
+                Log.d(TAG, "🎙️ Recording… (${durationMs / 1000}s)")
+                delay(durationMs)
+
+                recorder.stop()
+                recorder.release()
+
+                Log.d(TAG, "✅ Recording done: ${audioFile.absolutePath}")
                 audioFile.absolutePath
-                
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Failed to record voice", e)
+                Log.e(TAG, "❌ Voice recording failed", e)
+                try { recorder.release() } catch (_: Exception) {}
                 null
             }
         }
-    }
 
-    /**
-     * Capture photo and record voice simultaneously
-     */
-    suspend fun captureMedia(): MediaFiles {
-        Log.d(TAG, "🚀 Starting media capture...")
-        
-        // Capture photo immediately
-        val photoPath = capturePhoto()
-        
-        // Start voice recording for 1 minute
-        val audioPath = startVoiceRecording(60000) // 1 minute
-        
-        return MediaFiles(photoPath, audioPath)
-    }
-
-    /**
-     * Create image file
-     */
-    private fun createImageFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "SOS_Media")
-        if (!storageDir.exists()) {
-            storageDir.mkdirs()
+    /** Factory that picks the right MediaRecorder constructor for the API level. */
+    private fun createMediaRecorder(): MediaRecorder =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(context)
+        } else {
+            @Suppress("DEPRECATION")
+            MediaRecorder()
         }
-        return File(storageDir, "SOS_Photo_${timeStamp}.jpg")
-    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Photo capture (real camera, background-safe via deprecated Camera API)
+    // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Create audio file
+     * Opens the back camera, takes one JPEG picture, saves it, releases the camera.
+     * Returns the file path or null on failure.
      */
-    private fun createAudioFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "SOS_Media")
-        if (!storageDir.exists()) {
-            storageDir.mkdirs()
-        }
-        return File(storageDir, "SOS_Audio_${timeStamp}.3gp")
-    }
+    suspend fun capturePhoto(): String? = withContext(Dispatchers.IO) {
+        Log.d(TAG, "📸 Capturing photo…")
+        var camera: Camera? = null
+        var surfaceTexture: SurfaceTexture? = null
+        return@withContext try {
+            camera = Camera.open(0) // 0 = rear camera
+            
+            // Modern devices require a preview surface even for headless photo capture.
+            surfaceTexture = SurfaceTexture(10)
+            camera.setPreviewTexture(surfaceTexture)
+            camera.startPreview()
 
-    /**
-     * Create a dummy bitmap for testing
-     * In production, replace with actual camera capture
-     */
-    private fun createDummyBitmap(): Bitmap {
-        return Bitmap.createBitmap(640, 480, Bitmap.Config.ARGB_8888).apply {
-            // Create a simple test pattern
-            for (x in 0 until 640) {
-                for (y in 0 until 480) {
-                    setPixel(x, y, 0xFF0000FF.toInt()) // Blue color
+            // Use a CountDownLatch so we can wait synchronously for the callback
+            val latch = java.util.concurrent.CountDownLatch(1)
+            var photoPath: String? = null
+
+            camera.takePicture(null, null) { data, _ ->
+                try {
+                    val originalBitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+                    // Scale down by 50% to reduce file size and avoid 413 Request Entity Too Large
+                    val targetWidth = originalBitmap.width / 2
+                    val targetHeight = originalBitmap.height / 2
+                    val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, targetWidth, targetHeight, true)
+                    
+                    val file = createImageFile()
+                    FileOutputStream(file).use { out ->
+                        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 50, out)
+                    }
+                    
+                    if (scaledBitmap != originalBitmap) {
+                        scaledBitmap.recycle()
+                    }
+                    originalBitmap.recycle()
+                    
+                    photoPath = file.absolutePath
+                    Log.d(TAG, "✅ Photo saved: $photoPath")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error saving photo", e)
+                } finally {
+                    latch.countDown()
                 }
             }
-        }
-    }
 
-    /**
-     * Clean up old media files
-     */
-    fun cleanupOldFiles() {
-        try {
-            val photoDir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "SOS_Media")
-            val audioDir = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "SOS_Media")
-            
-            val cutoffTime = System.currentTimeMillis() - (24 * 60 * 60 * 1000) // 24 hours ago
-            
-            photoDir.listFiles()?.forEach { file ->
-                if (file.lastModified() < cutoffTime) {
-                    file.delete()
-                    Log.d(TAG, "🗑️ Deleted old photo: ${file.name}")
-                }
-            }
-            
-            audioDir.listFiles()?.forEach { file ->
-                if (file.lastModified() < cutoffTime) {
-                    file.delete()
-                    Log.d(TAG, "🗑️ Deleted old audio: ${file.name}")
-                }
-            }
+            // Wait up to 10 seconds for the picture callback
+            latch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            photoPath
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to cleanup old files", e)
+            Log.e(TAG, "❌ Camera capture failed", e)
+            null
+        } finally {
+            try {
+                camera?.stopPreview()
+                camera?.release()
+                surfaceTexture?.release()
+            } catch (_: Exception) {}
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Combined capture (used by Stage-2 service)
+    // Returns only the audio path; photos are taken in a separate coroutine
+    // and uploaded directly via ApiHelper.
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** Backward-compat wrapper used internally by the service. */
+    suspend fun captureMedia(): MediaFiles {
+        Log.d(TAG, "🚀 captureMedia() — capturing audio only (photos handled separately)")
+        val audioPath = startVoiceRecording(60_000L)
+        return MediaFiles(photoPath = null, audioPath = audioPath)
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // File helpers
+    // ────────────────────────────────────────────────────────────────────────
+
+    private fun createImageFile(): File {
+        val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val dir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "SOS_Media")
+        dir.mkdirs()
+        return File(dir, "SOS_Photo_$ts.jpg")
+    }
+
+    private fun createAudioFile(): File {
+        val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val dir = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "SOS_Media")
+        dir.mkdirs()
+        // Save as .m4a since we use MPEG_4 output format with AAC codec
+        return File(dir, "SOS_Audio_$ts.m4a")
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Cleanup
+    // ────────────────────────────────────────────────────────────────────────
+
+    fun cleanupOldFiles() {
+        val cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
+        for (subDir in listOf("SOS_Media")) {
+            File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), subDir)
+                .listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.delete() }
+
+            File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), subDir)
+                .listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.delete() }
         }
     }
 }

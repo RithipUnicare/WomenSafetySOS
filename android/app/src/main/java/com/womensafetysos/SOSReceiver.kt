@@ -4,90 +4,91 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.core.content.ContextCompat
 
 class SOSReceiver : BroadcastReceiver() {
 
     companion object {
+        private const val TAG = "SOSReceiver"
         private const val PREFS_NAME = "SOS_CLICK_PREFS"
         private const val CLICK_COUNT_KEY = "click_count"
         private const val LAST_CLICK_TIME_KEY = "last_click_time"
-        private const val CLICK_TIMEOUT_MS = 5000L // 5 seconds to detect multiple clicks
-        private const val MAX_CLICKS = 2 // Trigger actions after 2 clicks
+
+        // 2-minute window for second click
+        private const val CLICK_TIMEOUT_MS = 120_000L
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-    android.util.Log.d("SOSReceiver", "🔔 SOSReceiver.onReceive() called")
-    android.util.Log.d("SOSReceiver", "📋 Intent action: ${intent?.action}")
-    android.util.Log.d("SOSReceiver", "📅 Current time: ${System.currentTimeMillis()}")
-    
-    if (intent?.action == "ACTION_SOS") {
-        android.util.Log.d("SOSReceiver", "✅ Correct ACTION_SOS detected")
-        
+        Log.d(TAG, "🔔 SOSReceiver.onReceive() called")
+        Log.d(TAG, "📋 Intent action: ${intent?.action}")
+
+        if (intent?.action != "ACTION_SOS") {
+            Log.w(TAG, "❌ Unknown action: ${intent?.action}")
+            return
+        }
+
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val currentTime = System.currentTimeMillis()
         val lastClickTime = prefs.getLong(LAST_CLICK_TIME_KEY, 0)
-        
-        android.util.Log.d("SOSReceiver", "⏰ Last click time: $lastClickTime")
-        android.util.Log.d("SOSReceiver", "⏱️ Time since last click: ${currentTime - lastClickTime}ms")
-        
-        // Reset count if timeout exceeded
-        val clickCount = if (currentTime - lastClickTime > CLICK_TIMEOUT_MS) {
-            android.util.Log.d("SOSReceiver", "🔄 Timeout exceeded, resetting count to 1")
+        val timeSinceLast = currentTime - lastClickTime
+
+        Log.d(TAG, "⏱️ Time since last click: ${timeSinceLast}ms (timeout=${CLICK_TIMEOUT_MS}ms)")
+
+        // Reset if timeout exceeded
+        val clickCount = if (timeSinceLast > CLICK_TIMEOUT_MS) {
+            Log.d(TAG, "🔄 Timeout exceeded — treating as first click")
             1
         } else {
-            val previousCount = prefs.getInt(CLICK_COUNT_KEY, 0)
-            val newCount = previousCount + 1
-            android.util.Log.d("SOSReceiver", "📈 Incrementing count: $previousCount -> $newCount")
-            newCount
+            val prev = prefs.getInt(CLICK_COUNT_KEY, 0)
+            val next = prev + 1
+            Log.d(TAG, "📈 Click count: $prev → $next")
+            next
         }
-        
-        // Save updated count and time
+
+        // Persist
         prefs.edit().apply {
             putInt(CLICK_COUNT_KEY, clickCount)
             putLong(LAST_CLICK_TIME_KEY, currentTime)
-            android.util.Log.d("SOSReceiver", "💾 Saved click count: $clickCount, time: $currentTime")
             apply()
         }
-        
-        android.util.Log.d("SOSReceiver", "🔘 SOS click detected! Count: $clickCount")
-        android.util.Log.d("SOSReceiver", "🎯 Required clicks: $MAX_CLICKS, Timeout: ${CLICK_TIMEOUT_MS}ms")
-        
-        if (clickCount == 1) {
-            // First click: Don't trigger anything yet, just wait for second click
-            android.util.Log.d("SOSReceiver", "⏳ First click detected, waiting for second click...")
-            android.util.Log.d("SOSReceiver", "⏱️ User has ${CLICK_TIMEOUT_MS - (currentTime - lastClickTime)}ms remaining")
-            
-        } else if (clickCount >= MAX_CLICKS) {
-            // Second click: Open camera and microphone
-            android.util.Log.d("SOSReceiver", "📸 SECOND CLICK: Opening camera and microphone...")
-            android.util.Log.d("SOSReceiver", "📊 Final click count: $clickCount")
-            
-            // Reset count after triggering
-            prefs.edit().apply {
-                putInt(CLICK_COUNT_KEY, 0)
-                android.util.Log.d("SOSReceiver", "🔄 Reset click count after media action")
-                apply()
+
+        Log.d(TAG, "🔘 Effective click: $clickCount")
+
+        when (clickCount) {
+            1 -> {
+                // ── STAGE 1: send location ──────────────────────────────────
+                Log.d(TAG, "📍 CLICK 1 — Starting location service")
+                startService(context, "location_only", clickCount)
             }
-            
-            // Start service for camera and microphone
-            val serviceIntent = Intent(context, SOSForegroundService::class.java)
-            serviceIntent.putExtra("click_count", clickCount)
-            serviceIntent.putExtra("action", "media_capture")
-            android.util.Log.d("SOSReceiver", "🚀 Starting SOSForegroundService for media...")
-            
-            try {
-                ContextCompat.startForegroundService(context, serviceIntent)
-                android.util.Log.d("SOSReceiver", "✅ SOSForegroundService (media) started successfully")
-            } catch (e: Exception) {
-                android.util.Log.e("SOSReceiver", "❌ Failed to start SOSForegroundService (media)", e)
+            2 -> {
+                // ── STAGE 2: record audio + take 3 photos ───────────────────
+                Log.d(TAG, "📸 CLICK 2 — Starting media capture service")
+                startService(context, "media_capture", clickCount)
+
+                // Reset counter so a 3rd tap is treated as a fresh SOS
+                prefs.edit().apply {
+                    putInt(CLICK_COUNT_KEY, 0)
+                    apply()
+                }
             }
-        } else {
-            android.util.Log.d("SOSReceiver", "⏳ Waiting for more clicks... ($clickCount/$MAX_CLICKS)")
-            android.util.Log.d("SOSReceiver", "⏱️ User has ${CLICK_TIMEOUT_MS - (currentTime - lastClickTime)}ms remaining")
+            else -> {
+                // Extra clicks after 2 — ignore / treat as click 1 next time
+                Log.d(TAG, "⏳ Extra click ($clickCount) ignored")
+            }
         }
-    } else {
-        android.util.Log.w("SOSReceiver", "❌ Unknown action received: ${intent?.action}")
     }
-}
+
+    private fun startService(context: Context, action: String, clickCount: Int) {
+        val serviceIntent = Intent(context, SOSForegroundService::class.java).apply {
+            putExtra("action", action)
+            putExtra("click_count", clickCount)
+        }
+        try {
+            ContextCompat.startForegroundService(context, serviceIntent)
+            Log.d(TAG, "✅ SOSForegroundService started with action=$action")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to start SOSForegroundService", e)
+        }
+    }
 }
